@@ -1,0 +1,89 @@
+import os
+import yaml
+from ingest.Ingesta_parm import download_files_from_s3
+from utils.s3_helper import get_s3_client
+
+def load_config(config_path):
+    """
+    Carrega as configurações do arquivo config.yaml.
+    """
+    with open(config_path, 'r') as file:
+        config = yaml.safe_load(file)
+    return config
+
+
+def main():
+    # Caminho para o arquivo de configuração
+    config_path = os.path.join(os.path.dirname(__file__), '../config/config.yaml')
+    
+    # Carregar configurações
+    config = load_config(config_path)
+    
+    # Configurações do S3
+    aws_access_key = config['s3']['aws_access_key']
+    aws_secret_key = config['s3']['aws_secret_key']
+    input_bucket = config['s3']['input_bucket']
+    output_bucket = config['s3']['output_bucket']
+    
+    # Configurações do pipeline
+    months = config['pipeline']['months']
+    local_dir = config['pipeline']['local_dir']
+    
+    # Criar o diretório local, se não existir
+    os.makedirs(local_dir, exist_ok=True)
+    
+    # Fazer o download dos arquivos do S3
+    for month in months:
+        prefix = f"yellow_tripdata_{month}.parquet"
+        download_files_from_s3(input_bucket, prefix, local_dir)
+    
+    # Aqui você pode adicionar a lógica para transformar e carregar os dados
+    print(f"Arquivos baixados para o diretório: {local_dir}")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+    import requests
+import boto3
+from botocore.exceptions import NoCredentialsError
+
+def upload_url_to_s3(url, bucket_name, s3_key, aws_access_key, aws_secret_key):
+    """
+    Faz o download de um arquivo de uma URL e envia diretamente para o S3 sem salvar localmente.
+    """
+    try:
+        response = requests.get(url, stream=True)
+        response.raise_for_status()
+
+        s3 = boto3.client(
+            's3',
+            aws_access_key_id=aws_access_key,
+            aws_secret_access_key=aws_secret_key
+        )
+
+        s3.upload_fileobj(response.raw, bucket_name, s3_key)
+        print(f"Arquivo enviado diretamente para o S3: s3://{bucket_name}/{s3_key}")
+
+    except requests.exceptions.RequestException as e:
+        print(f"Erro ao baixar o arquivo da URL: {e}")
+    except NoCredentialsError:
+        print("Credenciais AWS inválidas.")
+    except Exception as e:
+        print(f"Erro inesperado: {e}")
+
+# Exemplo de uso
+if __name__ == "__main__":
+    # URL do arquivo para download
+    file_url = "https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page"
+    local_file_path = "yellow_tripdata_sample_2023-01.parquet"
+
+    # Configurações do S3
+    bucket_name = "yellow-taxi-files-anice"
+    s3_key = "ingesta_file/yellow_tripdata_sample_2023-01.parquet"
+    aws_access_key = "AKIAQ62SYYVDQTYHY7WP"
+    aws_secret_key = "IivboAdebexkiXsW+6BJHfPWb3WmYYUJKiLxTOHW"
+
+    upload_url_to_s3(file_url, bucket_name, s3_key, aws_access_key, aws_secret_key)
