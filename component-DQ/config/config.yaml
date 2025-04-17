@@ -1,8 +1,8 @@
 s3:
   input_bucket: "yellow-taxi-files-anice"
   output_bucket: "yellow-taxi-files-anice"
-  aws_access_key: "AKIAQ62SYYVDQTYHY7WP"
-  aws_secret_key: "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"
+  aws_access_key: "colocar aqui o access key"
+  aws_secret_key: "colocar aqui o secret key"
 
 pipeline:
   months:
